@@ -8,7 +8,7 @@ import geopy as gp
 from geopy import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 import pycountry_convert as pc
-
+import numpy as np
 
 us_state_to_abbrev = {
     "Alabama": "USA",
@@ -68,6 +68,11 @@ us_state_to_abbrev = {
     "Puerto Rico": "USA",
     "United States Minor Outlying Islands": "USA",
     "U.S. Virgin Islands": "USA",
+    "England": "Europe",
+    "USSR": "Asia",
+    "Soviet Union": "Asia",
+    "Czechoslovakia": "Europe",
+    "Yugoslavia": "Europe"
 }
 
 
@@ -91,7 +96,13 @@ def get_continent(country: str) -> str:
         continent_name = get_continent_name(continent_code)
         return continent_name
     except:
-        return us_state_to_abbrev[country]
+        if country in us_state_to_abbrev:
+            return us_state_to_abbrev[country]
+        words = country.split()
+        if len(words) > 1:
+            # print(words[-1])
+            return get_continent(words[-1])
+        return "Continent not found"
 
 
 df = pd.read_csv('crashes.csv')
@@ -100,10 +111,24 @@ addresses = df['Location']
 
 continents = [get_continent(str(address).split(',')[-1].strip()) for address in addresses]
 locations = [str(address).split(',')[-1].strip() for address in addresses]
-print(*zip(locations, continents))
+con_loc = [tup for tup in zip(locations, continents) if tup[1] == "Continent not found"]
+
+new_dict = {}
+for (key,value) in con_loc:
+    if key not in new_dict:
+        new_dict[key] = 1
+    else:
+        new_dict[key] += 1
+
+print(new_dict)
+
+new_dict = dict((key, value) for (key,value) in con_loc)
+#print(*zip(locations, continents))
 
 # years = sorted([date.year for date in dates])
 # dic = Counter(years)
 #
 # plt.plot(dic.keys(), dic.values())
 # plt.savefig('crashes_year.png')
+
+#print(len(np.where(np.array(continents)=="Continent not found")[0]))
