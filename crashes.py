@@ -72,20 +72,28 @@ us_state_to_abbrev = {
     "USSR": "Asia",
     "Soviet Union": "Asia",
     "Czechoslovakia": "Europe",
-    "Yugoslavia": "Europe"
+    "Yugoslavia": "Europe",
+    "Scotland": "Europe",
+    "DemocratiRepubliCongo": "Africa",
+    "Zaire": "Africa",
+    "Burma": "Asia",
+    "Newfoundland": "USA",
+    "Virgin Islands": "USA",
+    "North Sea": "Europe"
+}
+
+continent_dict = {
+    "NA": "North America",
+    "SA": "South America",
+    "AS": "Asia",
+    "AF": "Africa",
+    "OC": "Oceania",
+    "EU": "Europe",
+    "AQ": "Antarctica"
 }
 
 
 def get_continent_name(continent_code: str) -> str:
-    continent_dict = {
-        "NA": "North America",
-        "SA": "South America",
-        "AS": "Asia",
-        "AF": "Africa",
-        "OC": "Oceania",
-        "EU": "Europe",
-        "AQ": "Antarctica"
-    }
     return continent_dict[continent_code]
 
 
@@ -100,7 +108,6 @@ def get_continent(country: str) -> str:
             return us_state_to_abbrev[country]
         words = country.split()
         if len(words) > 1:
-            # print(words[-1])
             return get_continent(words[-1])
         return "Continent not found"
 
@@ -110,25 +117,23 @@ dates = pd.to_datetime(df['Date'])
 addresses = df['Location']
 
 continents = [get_continent(str(address).split(',')[-1].strip()) for address in addresses]
-locations = [str(address).split(',')[-1].strip() for address in addresses]
-con_loc = [tup for tup in zip(locations, continents) if tup[1] == "Continent not found"]
+# locations = [str(address).split(',')[-1].strip() for address in addresses]
+# con_loc = [tup for tup in zip(locations, continents) if tup[1] == "Continent not found"]
 
-new_dict = {}
-for (key,value) in con_loc:
-    if key not in new_dict:
-        new_dict[key] = 1
-    else:
-        new_dict[key] += 1
 
-print(new_dict)
+years = sorted([date.month for date in dates])
+dic = Counter(years)
+plt.plot(dic.keys(), dic.values())
+plt.savefig(f'crashes_month.png', dpi=300)
 
-new_dict = dict((key, value) for (key,value) in con_loc)
-#print(*zip(locations, continents))
-
-# years = sorted([date.year for date in dates])
-# dic = Counter(years)
+# df["Continent"] = continents
 #
-# plt.plot(dic.keys(), dic.values())
-# plt.savefig('crashes_year.png')
+# for continent in continent_dict.values():
+#     years = sorted([date.day for date, c in zip(dates, continents) if c is continent])
+#     dic = Counter(years)
+#
+#     plt.plot(dic.keys(), dic.values())
+#     plt.savefig(f'crashes_year_{continent}.png', dpi=300)
+#     plt.clf()
 
-#print(len(np.where(np.array(continents)=="Continent not found")[0]))
+# print(len(np.where(np.array(continents)=="Continent not found")[0]))
