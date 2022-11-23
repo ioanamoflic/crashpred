@@ -1,20 +1,11 @@
-
 import matplotlib.pyplot as plt
 import pandas as pd
-from datetime import datetime
-from datetime import date
-from collections import Counter
-import geopy as gp
-from geopy import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
-import pycountry_convert as pc
-import numpy as np
 
 df = pd.read_csv('expeditions.csv')
 
 
 def get_timespan(datetime, timespan_name):
-    if timespan_name  == 'month':
+    if timespan_name == 'month':
         return datetime.month
     return datetime.year
 
@@ -47,11 +38,8 @@ def get_success_percentage(feature: str, df):
         elif isinstance(key, int) or isinstance(key, bool):
             per_results[key] = 0
 
-    #print(dict(sorted(all_results.items(), key=lambda x: x[0])))
+    # print(dict(sorted(all_results.items(), key=lambda x: x[0])))
     return dict(sorted(per_results.items(), key=lambda x: x[0]))
-
-
-# def build_final_dataset(df):
 
 
 def save_plot(feature, df):
@@ -66,20 +54,19 @@ df_peaks = df[df["peak_name"].isin(peaks)]
 df_peaks_subset = df_peaks[df_peaks['hired_staff'] < 20]
 df_peaks_subset['year'] = pd.to_datetime(df_peaks_subset['basecamp_date']).map(lambda x: x.year)
 
-df_peaks_subset['success'] = df_peaks_subset['termination_reason'].map(lambda x: 'Success' in x)
+df_peaks_subset['success'] = df_peaks_subset['termination_reason'].map(lambda x: ('Success' in x) is True)
 df_peaks_subset = df_peaks_subset[df_peaks_subset['year'] >= 1981]
 
-left_q = df_peaks_subset.groupby(['year', 'oxygen_used']).count().rename(columns={'expedition_id':'attempts'})
-right_q = df_peaks_subset[df_peaks_subset['success']==True].groupby(['year', 'oxygen_used']).count()
-merged_q = pd.merge(left_q, right_q,  how='left', left_on=['year', 'oxygen_used'], right_on = ['year', 'oxygen_used'])
+left_q = df_peaks_subset.groupby(['year', 'oxygen_used']).count().rename(columns={'expedition_id': 'attempts'})
+right_q = df_peaks_subset[df_peaks_subset['success'] == True].groupby(['year', 'oxygen_used']).count()
+merged_q = pd.merge(left_q, right_q, how='left', left_on=['year', 'oxygen_used'], right_on=['year', 'oxygen_used'])
 merged_q = merged_q[['attempts', 'success_y']]
 merged_q.fillna(0, inplace=True)
-merged_q = merged_q.astype('int')
-merged_q.to_csv('out.csv', index=True)
+merged_q.reset_index(inplace=True)
+merged_q = merged_q.astype(int)
+merged_q.to_csv('out.csv', index=False)
 
 # save_plot('month', df_peaks_subset)
 # save_plot('year', df_peaks_subset)
 # save_plot('oxygen_used', df_peaks_subset)
 # save_plot('hired_staff', df_peaks_subset)
-
-
