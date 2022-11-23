@@ -51,6 +51,9 @@ def get_success_percentage(feature: str, df):
     return dict(sorted(per_results.items(), key=lambda x: x[0]))
 
 
+# def build_final_dataset(df):
+
+
 def save_plot(feature, df):
     per_results = get_success_percentage(feature, df)
     plt.plot(per_results.keys(), per_results.values())
@@ -58,20 +61,25 @@ def save_plot(feature, df):
     plt.clf()
 
 
-print(df['peak_name'].value_counts())
 peaks = ['Everest', 'Ama Dablam', 'Cho Oyu']
 df_peaks = df[df["peak_name"].isin(peaks)]
 df_peaks_subset = df_peaks[df_peaks['hired_staff'] < 20]
+df_peaks_subset['year'] = pd.to_datetime(df_peaks_subset['basecamp_date']).map(lambda x: x.year)
 
-df_peaks_subset['year'] = pd.to_datetime(df_peaks['basecamp_date'])
+df_peaks_subset['success'] = df_peaks_subset['termination_reason'].map(lambda x: 'Success' in x)
+df_peaks_subset = df_peaks_subset[df_peaks_subset['year'] >= 1981]
 
-print(df_peaks_subset.head())
+left_q = df_peaks_subset.groupby(['year', 'oxygen_used']).count().rename(columns={'expedition_id':'attempts'})
+right_q = df_peaks_subset[df_peaks_subset['success']==True].groupby(['year', 'oxygen_used']).count()
+merged_q = pd.merge(left_q, right_q,  how='left', left_on=['year', 'oxygen_used'], right_on = ['year', 'oxygen_used'])
+merged_q = merged_q[['attempts', 'success_y']]
+merged_q.fillna(0, inplace=True)
+merged_q = merged_q.astype('int')
+merged_q.to_csv('out.csv', index=True)
 
-df_peaks_subset = df_peaks_subset[pd.to_datetime(df_peaks_subset['basecamp_date']).year > 1981]
-
-save_plot('month', df_peaks_subset)
-save_plot('year', df_peaks_subset)
-save_plot('oxygen_used', df_peaks_subset)
-save_plot('hired_staff', df_peaks_subset)
+# save_plot('month', df_peaks_subset)
+# save_plot('year', df_peaks_subset)
+# save_plot('oxygen_used', df_peaks_subset)
+# save_plot('hired_staff', df_peaks_subset)
 
 
