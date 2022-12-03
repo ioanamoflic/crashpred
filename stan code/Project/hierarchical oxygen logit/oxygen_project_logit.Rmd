@@ -1,0 +1,207 @@
+---
+title: "project"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+library("rstan")
+library("loo")
+library("bayesplot")
+library("posterior")
+```
+
+```{r}
+
+everest_data = read.delim("out_everest.csv", header = TRUE, sep = ",")
+#everest_data
+
+success1 <- matrix(everest_data$success[seq(2, length(everest_data$success), by = 2)])
+success2 <- matrix(everest_data$success[seq(1, length(everest_data$success), by = 2)])
+
+attempts1 <- matrix(everest_data$attempts[seq(2, length(everest_data$attempts), by = 2)])
+attempts2 <- matrix(everest_data$attempts[seq(1, length(everest_data$attempts), by = 2)])
+
+year1 <- matrix(everest_data$year[seq(2, length(everest_data$year), by = 2)])
+year2 <- matrix(everest_data$year[seq(1, length(everest_data$year), by = 2)])
+#cho_oyu_data = read.delim("out_cho_oyu.csv", header = TRUE, sep = ",")
+#lhotse_data = read.delim("out_lhotse.csv", header = TRUE, sep = ",")
+
+
+success = cbind(success1, success2)
+attempts = cbind(attempts1, attempts2)
+year = cbind(year1, year2)
+
+
+#oxygen_used = cbind(everest_data$oxygen_used, cho_oyu_data$oxygen_used, lhotse_data$oxygen_used)
+#print(attempts)
+```
+
+```{r}
+
+stan_data <- list(
+  N = length(success1),
+  M = 2,
+  success = success,
+  attempts = attempts,
+  year = year
+)
+
+```
+
+## Model down 
+
+```{r}
+
+fit_result <- stan(file = "hierarchical_model_oxygen_logit.stan", data = stan_data)
+
+summary(fit_result)
+
+```
+
+```{r}
+loo(fit_result)
+```
+
+
+
+```{r}
+summary(fit_result, pars = c('intercept', 'year_weight'))$summary
+posterior_intercept_everest_mean_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[1, 1]
+posterior_intercept_everest_mean_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[2, 1]
+posterior_year_weight_mean_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[3, 1]
+posterior_year_weight_mean_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[4, 1]
+
+posterior_intercept_everest_q1_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[1, 4]
+posterior_intercept_everest_q1_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[2, 4]
+posterior_year_weight_q1_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[3, 4]
+posterior_year_weight_q1_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[4, 4]
+
+posterior_intercept_everest_q2_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[1, 8]
+posterior_intercept_everest_q2_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[2, 8]
+posterior_year_weight_q2_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[3, 8]
+posterior_year_weight_q2_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[4, 8]
+
+
+posterior_intercept_everest_mean_1
+posterior_intercept_everest_mean_2
+posterior_year_weight_mean_1
+posterior_year_weight_mean_2
+
+posterior_intercept_everest_q1_1
+posterior_intercept_everest_q1_2
+posterior_year_weight_q1_1
+posterior_year_weight_q1_2
+
+posterior_intercept_everest_q2_1
+posterior_intercept_everest_q2_2
+posterior_year_weight_q2_1
+posterior_year_weight_q2_2
+
+
+#theta_posterior_mean <- summary(fit_result, pars = c('theta'))$summary[, 1]
+#posterior_mean_everest <- theta_posterior_mean[seq(1, length(theta_posterior_mean), by = 3)]
+#even_posterior_mean_everest <- posterior_mean_everest[seq(2, length(posterior_mean_everest), by = 2)]
+#odd_posterior_mean_everest <- posterior_mean_everest[seq(1, length(posterior_mean_everest), by = 2)]
+#print(odd_posterior_mean_everest)
+#print("og theta")
+#theta_posterior_mean
+#summary(fit_result_logit, pars = c('theta'))$summary#$theta
+
+#print(year)
+#success
+#attempts
+#success_rate = success / attempts
+#success_rate
+```
+
+
+```{r}
+#draws_sigmoid <- extract(fit_result)
+
+#print(draws_logit)
+
+success_rate = success / attempts
+odd_success_rate_everest = success_rate[, 1]
+odd_data_everest <- list(
+  x = year[, 1],
+  y = odd_success_rate_everest
+)
+
+even_success_rate_everest = success_rate[, 2]
+even_data_everest <- list(
+  x = year[, 1],
+  y = even_success_rate_everest
+)
+
+
+posterior_intercept_everest1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[1, 1]
+posterior_intercept_everest2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[2, 1]
+posterior_year_weight1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[3, 1]
+posterior_year_weight2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[4, 1]
+
+posteior_mean_f1 <- function(x) 1/(1+exp( - (posterior_intercept_everest1 + posterior_year_weight1 * (x - 1980)/8)/100 ))  
+
+posteior_mean_f2 <- function(x) 1/(1+exp( - (posterior_intercept_everest2 + posterior_year_weight2 * (x - 1980)/8)/100))
+
+posterior_intercept_everest_q1_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[1, 4]
+posterior_intercept_everest_q1_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[2, 4]
+posterior_year_weight_q1_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[3, 4]
+posterior_year_weight_q1_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[4, 4]
+
+
+posteior_q1_f1 <- function(x) 1/(1+exp( - (posterior_intercept_everest_q1_1 + posterior_year_weight_q1_1 * (x - 1980)/8)/100 ))  
+
+posteior_q1_f2 <- function(x) 1/(1+exp( - (posterior_intercept_everest_q1_2 + posterior_year_weight_q1_2 * (x - 1980)/8)/100))
+
+posterior_intercept_everest_q2_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[1, 8]
+posterior_intercept_everest_q2_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[2, 8]
+posterior_year_weight_q2_1 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[3, 8]
+posterior_year_weight_q2_2 <- summary(fit_result, pars = c('intercept', 'year_weight'))$summary[4, 8]
+
+
+posteior_q2_f1 <- function(x) 1/(1+exp( - (posterior_intercept_everest_q2_1 + posterior_year_weight_q2_1 * (x - 1980)/8)/100 ))  
+
+posteior_q2_f2 <- function(x) 1/(1+exp( - (posterior_intercept_everest_q2_2 + posterior_year_weight_q2_2 * (x - 1980)/8)/100))
+
+
+pfit <- ggplot() +
+  geom_point(aes(x, y), data = data.frame(odd_data_everest), size = 1, color = 'blue') +
+  geom_point(aes(x, y), data = data.frame(even_data_everest), size = 1, color = 'red') +
+  stat_function(fun = posteior_mean_f1, color = 'blue') +
+  stat_function(fun = posteior_mean_f2, color = 'red') +
+  stat_function(fun = posteior_q1_f1, linetype = "dotted", color = 'blue') +
+  stat_function(fun = posteior_q1_f2, linetype = "dotted", color = 'red') +
+  stat_function(fun = posteior_q2_f1, linetype = "dotted", color = 'blue') +
+  stat_function(fun = posteior_q2_f2, linetype = "dotted", color = 'red') +
+  #geom_line(aes(x, y), data = data.frame(even_posterior_data_everest), color = 'red') +
+  #geom_line(aes(x, y), data = data.frame(odd_posterior_data_everest), color = 'blue') +
+  labs(y = 'Success rate', x= "Year") +
+  scale_color_manual(name = "Legend", values = c("oxygenn used" = "darkblue", "oxygen not used" = "red"))
+
+pfit
+
+```
+
+
+```{r}
+posterior <- as.array(fit_result)
+mcmc_trace(posterior, pars = c('intercept[1]', 'intercept[2]', 'year_weight[1]', 'year_weight[2]'))
+
+```
+
+```{r}
+posterior <- as.array(fit_result)
+mcmc_dens(posterior, pars = c('intercept[1]', 'intercept[2]', 'year_weight[1]', 'year_weight[2]'))
+```
+
+```{r}
+#ess_basic(extract(fit_result))
+
+
+ess_basic(extract(fit_result)$year_weight[, 1])
+ess_basic(extract(fit_result)$year_weight[, 2])
+
+ess_basic(extract(fit_result)$intercept[, 1])
+ess_basic(extract(fit_result)$intercept[, 2])
+
+```

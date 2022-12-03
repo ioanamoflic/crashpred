@@ -1,0 +1,185 @@
+---
+title: "project"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+library("rstan")
+library("loo")
+```
+
+```{r}
+
+everest_data = read.delim("out_everest.csv", header = TRUE, sep = ",")
+cho_oyu_data = read.delim("out_cho_oyu.csv", header = TRUE, sep = ",")
+lhotse_data = read.delim("out_lhotse.csv", header = TRUE, sep = ",")
+
+success = cbind(everest_data$success, cho_oyu_data$success, lhotse_data$success)
+attempts = cbind(everest_data$attempts, cho_oyu_data$attempts, lhotse_data$attempts)
+year = cbind(everest_data$year, cho_oyu_data$year, lhotse_data$year)
+oxygen_used = cbind(everest_data$oxygen_used, cho_oyu_data$oxygen_used, lhotse_data$oxygen_used)
+#print(attempts)
+```
+
+```{r}
+
+stan_data <- list(
+  N = nrow(success),
+  M = 3,
+  success = success,
+  attempts = attempts,
+  year = year,
+  oxygen_used = oxygen_used
+)
+```
+
+## Model down 
+
+```{r}
+
+#fit_result <- stan(file = "model_independent_features.stan", data = stan_data)
+#print(stan_data)
+fit_result <- stan(file = "hierarchical_model_sigmoid.stan", data = stan_data)
+
+summary(fit_result)
+
+```
+
+```{r}
+loo(fit_result)
+```
+# Logit model
+
+```{r}
+
+
+fit_result_logit <- stan(file = "hierarchical_model_logit.stan", data = stan_data)
+
+#summary(fit_result_linear)
+
+```
+
+```{r}
+loo(fit_result_logit)
+```
+
+```{r}
+draws_logit <- extract(fit_result_logit)
+
+#print(draws_logit)
+
+success_rate = success / attempts
+odd_success_rate_everest = success_rate[seq(1, nrow(success_rate), by = 2), 1]
+odd_year_everest = year[seq(1, nrow(year), by = 2), 1]
+odd_data_everest <- list(
+  x = odd_year_everest,
+  y = odd_success_rate_everest
+)
+
+even_success_rate_everest = success_rate[seq(2, nrow(success_rate), by = 2), 1]
+even_year_everest = year[seq(2, nrow(year), by = 2), 1]
+even_data_everest <- list(
+  x = even_year_everest,
+  y = even_success_rate_everest
+)
+
+theta_posterior_mean <- exp(summary(fit_result_logit, pars = c('theta'))$summary[, 1])
+posterior_mean_everest <- theta_posterior_mean[seq(1, length(theta_posterior_mean), by = 3)]
+even_posterior_mean_everest <- posterior_mean_everest[seq(2, length(posterior_mean_everest), by = 2)]
+even_posterior_data_everest <- list(
+  x = even_year_everest,
+  y = even_posterior_mean_everest
+)
+
+odd_posterior_mean_everest <- posterior_mean_everest[seq(1, length(posterior_mean_everest), by = 2)]
+odd_posterior_data_everest <- list(
+  x = odd_year_everest,
+  y = odd_posterior_mean_everest
+)
+
+
+
+pfit <- ggplot() +
+  geom_point(aes(x, y), data = data.frame(odd_data_everest), size = 1, color = 'red') +
+  geom_point(aes(x, y), data = data.frame(even_data_everest), size = 1, color = 'blue') +
+  geom_line(aes(x, y), data = data.frame(even_posterior_data_everest), color = 'red') +
+  geom_line(aes(x, y), data = data.frame(odd_posterior_data_everest), color = 'red') +
+  labs(y = 'Success rate', x= "Year")
+  #+ geom_point(aes(x, y), data = data.frame(data_lin), size = 1)
+
+pfit
+
+```
+
+```{r}
+
+#success_rate = success / attempts
+#odd_success_rate_everest = success_rate[seq(1, nrow(success_rate), by = 2), 1]
+#odd_year_everest = year[seq(1, nrow(year), by = 2), 1]
+#print(cbind(odd_success_rate_everest, odd_year_everest))
+print(odd_year_everest)
+
+```
+
+```{r}
+
+theta_posterior_mean <- summary(fit_result, pars = c('theta'))$summary[, 1]
+posterior_mean_everest <- theta_posterior_mean[seq(1, length(theta_posterior_mean), by = 3)]
+even_posterior_mean_everest <- posterior_mean_everest[seq(2, length(posterior_mean_everest), by = 2)]
+odd_posterior_mean_everest <- posterior_mean_everest[seq(1, length(posterior_mean_everest), by = 2)]
+print(odd_posterior_mean_everest)
+print("og theta")
+#theta_posterior_mean
+#summary(fit_result_logit, pars = c('theta'))$summary#$theta
+
+```
+
+
+
+```{r}
+#draws_sigmoid <- extract(fit_result)
+
+#print(draws_logit)
+
+success_rate = success / attempts
+odd_success_rate_everest = success_rate[seq(1, nrow(success_rate), by = 2), 1]
+odd_year_everest = year[seq(1, nrow(year), by = 2), 1]
+odd_data_everest <- list(
+  x = odd_year_everest,
+  y = odd_success_rate_everest
+)
+
+even_success_rate_everest = success_rate[seq(2, nrow(success_rate), by = 2), 1]
+even_year_everest = year[seq(2, nrow(year), by = 2), 1]
+even_data_everest <- list(
+  x = even_year_everest,
+  y = even_success_rate_everest
+)
+
+theta_posterior_mean <- summary(fit_result, pars = c('theta'))$summary[, 1]
+posterior_mean_everest <- theta_posterior_mean[seq(1, length(theta_posterior_mean), by = 3)]
+even_posterior_mean_everest <- posterior_mean_everest[seq(2, length(posterior_mean_everest), by = 2)]
+even_posterior_data_everest <- list(
+  x = even_year_everest,
+  y = even_posterior_mean_everest
+)
+
+odd_posterior_mean_everest <- posterior_mean_everest[seq(1, length(posterior_mean_everest), by = 2)]
+odd_posterior_data_everest <- list(
+  x = odd_year_everest,
+  y = odd_posterior_mean_everest
+)
+
+
+
+pfit <- ggplot() +
+  geom_point(aes(x, y), data = data.frame(odd_data_everest), size = 1, color = 'red') +
+  geom_point(aes(x, y), data = data.frame(even_data_everest), size = 1, color = 'blue') +
+  geom_line(aes(x, y), data = data.frame(even_posterior_data_everest), color = 'red') +
+  geom_line(aes(x, y), data = data.frame(odd_posterior_data_everest), color = 'blue') +
+  labs(y = 'Success rate', x= "Year")
+  #+ geom_point(aes(x, y), data = data.frame(data_lin), size = 1)
+
+pfit
+
+```
